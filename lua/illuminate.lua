@@ -94,7 +94,9 @@ local function augroup(bufnr, autocmds)
 end
 
 local function autocmd(bufnr)
-    vim.cmd(string.format('autocmd CursorMoved,CursorMovedI <buffer=%d> lua require"illuminate".on_cursor_moved(%d)', bufnr, bufnr))
+    vim.cmd(string.format('autocmd CursorMoved <buffer=%d> lua require"illuminate".on_cursor_moved(%d)', bufnr, bufnr))
+    vim.cmd('au InsertCharPre <buffer> lua vim.lsp.util.buf_clear_references(0)')
+    vim.cmd('au ModeChanged n:v lua vim.lsp.util.buf_clear_references(0)')
 end
 
 local function move_cursor(row, col)
@@ -127,10 +129,14 @@ function M.on_attach(client)
 end
 
 function M.on_cursor_moved(bufnr)
-    if not cursor_in_references(bufnr) then
+    if vim.api.nvim_get_mode()['mode'] == 'v' then
         vim.lsp.util.buf_clear_references(bufnr)
+    else
+      if not cursor_in_references(bufnr) then
+          vim.lsp.util.buf_clear_references(bufnr)
+      end
+      vim.lsp.buf.document_highlight()
     end
-    vim.lsp.buf.document_highlight()
 end
 
 function M.get_document_highlights(bufnr)
